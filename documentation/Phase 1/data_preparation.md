@@ -111,5 +111,20 @@ For each of the 12 classes, verify:
 - **Calories:** Average per serving (e.g., 1 plate of 6 Pani Puris ≈ 150-200 kcal).
 - **Allergens:** Identify if the dish contains Gluten (wheat), Dairy (yogurt/butter), or Nuts.
 
+## 6. Dataset Expansion (Physical Augmentation)
+Since we have a relatively small number of original images (~50 per class), we must expand the dataset to help the model generalize.
+
+### How to expand:
+Run the [Phase_1_Perform_Augmentation.ipynb](../../Phase_1_Perform_Augmentation.ipynb) notebook. It will:
+- Iterate through each folder in `dataset_split/train/`.
+- Apply **random rotation, flip, and brightness** changes.
+- Save 2 new versions of every image.
+
+### Expected Result:
+| Status | Image Count per Class | Total Dataset |
+| :--- | :--- | :--- |
+| **Before Augmentation** | ~50 original | ~600 images |
+| **After Augmentation** | ~150 (50 orig + 100 aug) | **~1,800 images** |
+
 ---
-**Next Step:** Once the folders are populated, proceed to [Phase 2: Model Training].
+**Next Step:** Once high-quality augmented images are saved in Drive, proceed to [Phase 2: Model Training].

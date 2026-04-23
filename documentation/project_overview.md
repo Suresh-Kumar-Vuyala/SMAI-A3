@@ -17,11 +17,11 @@ We are using a subset of the **Indian Food Images** dataset from Kaggle.
 
 ## Step-by-Step Execution Guide
 
-### Phase 1: Data preparation 📂
-1. **Download:** Get the "Indian Food Images" dataset from Kaggle.
-2. **Filter:** Isolate the 12 target street food classes (Pani Puri, Vada Pav, etc.).
-3. **Split:** Divide data into 80% Training and 20% Validation.
-4. **Augmentation:** Apply simple transforms (rotation, flip) to increase robustness.
+### Phase 1: Data Preparation & Augmentation 📂
+1. **Extraction:** Use the Colab notebook to filter 12 Street Food classes from the master set.
+2. **Splitting:** Automatically divide images into 70/15/15 ratio.
+3. **Augmentation (Dataset Expansion):** Run the augmentation notebook to **triple** the training data (moving from ~600 to ~1,800 images).
+4. **Validation:** Check the final counts to ensure each class has at least 150 training samples.
 
 ### Phase 2: Model Training 🧠
 1. **Backbone:** Load a pre-trained `models.mobilenet_v3_small` or `resnet18`.
