@@ -1,0 +1,728 @@
+\documentclass[12pt, a4paper]{article}
+
+% ─── Packages ────────────────────────────────────────────────────────────────
+\usepackage[a4paper, margin=2.5cm]{geometry}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{tabularx}
+\usepackage{longtable}
+\usepackage{multirow}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{hyperref}
+\usepackage{xcolor}
+\usepackage{listings}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{float}
+\usepackage{enumitem}
+\usepackage{fancyhdr}
+\usepackage{titlesec}
+\usepackage{tcolorbox}
+\usepackage{pgfplots}
+\usepackage{tikz}
+\usepackage{fontawesome5}
+\usepackage{mdframed}
+\usepackage{parskip}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{microtype}
+
+\pgfplotsset{compat=1.18}
+
+% ─── Colors ──────────────────────────────────────────────────────────────────
+\definecolor{primaryblue}{RGB}{30, 80, 162}
+\definecolor{accentorange}{RGB}{230, 100, 20}
+\definecolor{lightgray}{RGB}{245, 245, 245}
+\definecolor{darkgray}{RGB}{60, 60, 60}
+\definecolor{codegreen}{RGB}{0, 128, 0}
+\definecolor{codepurple}{RGB}{128, 0, 128}
+\definecolor{codeblue}{RGB}{0, 0, 180}
+\definecolor{codered}{RGB}{180,0,0}
+\definecolor{successgreen}{RGB}{0, 150, 80}
+
+% ─── Hyperref Setup ──────────────────────────────────────────────────────────
+\hypersetup{
+    colorlinks=true,
+    linkcolor=primaryblue,
+    urlcolor=accentorange,
+    citecolor=primaryblue,
+    pdftitle={ChaatCheck: Indian Street Food Recognizer},
+    pdfauthor={SMAI Assignment 3},
+}
+
+% ─── Header / Footer ─────────────────────────────────────────────────────────
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\textcolor{primaryblue}{\textbf{ChaatCheck}} — Indian Street Food Recognizer}
+\fancyhead[R]{\textcolor{darkgray}{SMAI Assignment 3}}
+\fancyfoot[C]{\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+\renewcommand{\footrulewidth}{0.4pt}
+
+% ─── Section Styling ─────────────────────────────────────────────────────────
+\titleformat{\section}
+  {\large\bfseries\color{primaryblue}}
+  {\thesection.}{0.6em}{}[\titlerule]
+
+\titleformat{\subsection}
+  {\normalsize\bfseries\color{darkgray}}
+  {\thesubsection}{0.5em}{}
+
+\titleformat{\subsubsection}
+  {\normalsize\itshape\color{darkgray}}
+  {\thesubsubsection}{0.5em}{}
+
+% ─── Code Listing Style ──────────────────────────────────────────────────────
+\lstdefinestyle{pythonstyle}{
+    language=Python,
+    backgroundcolor=\color{lightgray},
+    basicstyle=\ttfamily\small,
+    keywordstyle=\color{codeblue}\bfseries,
+    stringstyle=\color{codered},
+    commentstyle=\color{codegreen}\itshape,
+    numberstyle=\tiny\color{darkgray},
+    numbers=left,
+    numbersep=8pt,
+    frame=single,
+    framerule=0.5pt,
+    rulecolor=\color{primaryblue!40},
+    breaklines=true,
+    breakatwhitespace=true,
+    showstringspaces=false,
+    tabsize=4,
+    captionpos=b,
+}
+\lstset{style=pythonstyle}
+
+% ─── Info Box ────────────────────────────────────────────────────────────────
+\tcbuselibrary{skins, breakable}
+\newtcolorbox{infobox}[1][]{
+  colback=primaryblue!5,
+  colframe=primaryblue,
+  fonttitle=\bfseries,
+  title=#1,
+  breakable
+}
+\newtcolorbox{resultbox}[1][]{
+  colback=successgreen!5,
+  colframe=successgreen,
+  fonttitle=\bfseries,
+  title=#1,
+  breakable
+}
+
+% ─────────────────────────────────────────────────────────────────────────────
+%  DOCUMENT
+% ─────────────────────────────────────────────────────────────────────────────
+\begin{document}
+
+% ─── Title Page ──────────────────────────────────────────────────────────────
+\begin{titlepage}
+  \centering
+  \vspace*{1.5cm}
+
+  {\Huge\bfseries\color{primaryblue} ChaatCheck}\\[0.4cm]
+  {\LARGE\color{accentorange} Indian Street Food Recognizer}\\[0.3cm]
+  {\large\color{darkgray}\textit{T2.4 — Street Food Tier 1}}
+
+  \vspace{1cm}
+  \hrule height 1pt
+  \vspace{0.5cm}
+
+  \begin{tcolorbox}[colback=lightgray, colframe=primaryblue, width=0.85\textwidth]
+    \centering
+    \textit{"Point your phone at a thali — the app names every dish, estimates calories, and flags allergens in real time."}
+  \end{tcolorbox}
+
+  \vspace{1cm}
+
+  \begin{tabular}{rl}
+    \textbf{Course:}    & Statistical Methods in AI (SMAI) \\[4pt]
+    \textbf{Assignment:}& Assignment 3 — Transfer Learning \& Image Classification \\[4pt]
+    \textbf{Task:}      & T2 — Indian Food Recognizer (Street Food, Tier 1) \\[4pt]
+    \textbf{Model:}     & MobileNetV2 (Fine-tuned, 12 classes) \\[4pt]
+    \textbf{Framework:} & PyTorch + Streamlit \\[4pt]
+    \textbf{Dataset:}   & Indian Food Images (Kaggle, 80 classes → 12 selected) \\[4pt]
+  \end{tabular}
+
+  \vfill
+  {\small\color{darkgray} Submitted in partial fulfilment of SMAI Assignment 3 requirements}
+\end{titlepage}
+
+% ─── Table of Contents ───────────────────────────────────────────────────────
+\tableofcontents
+\newpage
+
+% ═════════════════════════════════════════════════════════════════════════════
+\section{Introduction \& Problem Statement}
+% ═════════════════════════════════════════════════════════════════════════════
+
+\textbf{ChaatCheck} is an end-to-end deep learning system for classifying Indian street food images. Given a photograph of food, the system:
+
+\begin{itemize}[leftmargin=1.5em]
+  \item Predicts the \textbf{dish name} from 12 possible street food classes
+  \item Returns a \textbf{confidence score} for the prediction
+  \item Displays \textbf{calorie estimates} per serving
+  \item Shows \textbf{colour-coded allergen badges} (Gluten, Dairy, Nuts)
+  \item Lists \textbf{key ingredients}
+\end{itemize}
+
+\subsection{Motivation}
+
+India's street food ecosystem is enormous and culturally diverse. Identifying dishes by photograph is non-trivial due to variations in preparation, plating, lighting, and regional style. Building an automated classifier has practical applications in dietary tracking, menu digitisation, and allergen safety.
+
+\subsection{Scope — Task T2.4 (Street Food Tier 1)}
+
+This project implements Tier 1 of Task T2 from the SMAI assignment specification, targeting 12 street food classes drawn from the master 80-class Indian Food Images dataset. The 12 classes were selected for their distinct visual signatures and prevalence in North and South Indian street food culture.
+
+\begin{infobox}[Dataset Source]
+\href{https://www.kaggle.com/datasets/iamsouravbanerjee/indian-food-images-dataset}{Indian Food Images Dataset} — Kaggle (iamsouravbanerjee). 4,000+ images across 80 food categories. Licensed for educational use.
+\end{infobox}
+
+% ═════════════════════════════════════════════════════════════════════════════
+\section{Dataset Description}
+% ═════════════════════════════════════════════════════════════════════════════
+
+\subsection{Source Dataset}
+
+The primary dataset contains 4,000+ images spanning 80 Indian food classes. Images vary in resolution, aspect ratio, background clutter, and lighting conditions — making the task representative of real-world deployment challenges.
+
+\subsection{Class Selection — 12 Street Food Classes}
+
+From the 80 available classes, 12 were selected based on street food prevalence and visual distinctiveness. Table~\ref{tab:classes} lists all 12 classes with their nutritional metadata.
+
+\begin{table}[H]
+\centering
+\caption{Selected Street Food Classes with Metadata}
+\label{tab:classes}
+\renewcommand{\arraystretch}{1.3}
+\begin{tabularx}{\textwidth}{@{} c l c c c X @{}}
+\toprule
+\textbf{\#} & \textbf{Class Name} & \textbf{Calories (kcal)} & \textbf{Diet} & \textbf{Allergens} & \textbf{Key Ingredients} \\
+\midrule
+1  & aloo\_tikki        & 180--220 & Veg   & Gluten       & Potato, bread crumbs, spices \\
+2  & bhatura            & 300--350 & Veg   & Gluten       & Maida, yogurt, oil \\
+3  & chana\_masala      & 220--260 & Vegan & None         & Chickpeas, tomato, spices \\
+4  & daal\_puri         & 260--300 & Veg   & Gluten       & Wheat flour, lentils, oil \\
+5  & jalebi             & 140--180 & Veg   & Gluten       & Maida, sugar syrup, ghee \\
+6  & kachori            & 250--300 & Veg   & Gluten       & Flour, lentils, oil \\
+7  & lassi              & 150--200 & Veg   & Dairy        & Curd, sugar, cardamom \\
+8  & litti\_chokha      & 300--350 & Veg   & Gluten       & Wheat flour, sattu, ghee \\
+9  & poha               & 150--200 & Vegan & Nuts         & Flattened rice, peanuts, spices \\
+10 & rabri              & 300--400 & Veg   & Dairy, Nuts  & Milk, sugar, dry fruits \\
+11 & kuzhi\_paniyaram   & 200--250 & Veg   & None         & Rice batter, lentils, oil \\
+12 & unni\_appam        & 220--260 & Veg   & Gluten       & Rice flour, banana, jaggery \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsection{Dataset Split}
+
+Images were split into train, validation, and test partitions using a \textbf{70/15/15} ratio, applied per class after random shuffling to ensure balanced representation. Table~\ref{tab:split} shows per-class counts before augmentation.
+
+\begin{table}[H]
+\centering
+\caption{Dataset Split (Before Augmentation)}
+\label{tab:split}
+\renewcommand{\arraystretch}{1.2}
+\begin{tabular}{@{} lcccc @{}}
+\toprule
+\textbf{Class} & \textbf{Train} & \textbf{Val} & \textbf{Test} & \textbf{Total} \\
+\midrule
+aloo\_tikki        & 35 & 7 & 8 & 50 \\
+bhatura            & 35 & 7 & 8 & 50 \\
+chana\_masala      & 35 & 7 & 8 & 50 \\
+daal\_puri         & 35 & 7 & 8 & 50 \\
+jalebi             & 35 & 7 & 8 & 50 \\
+kachori            & 35 & 7 & 8 & 50 \\
+lassi              & 35 & 7 & 8 & 50 \\
+litti\_chokha      & 35 & 7 & 8 & 50 \\
+poha               & 35 & 7 & 8 & 50 \\
+rabri              & 35 & 7 & 8 & 50 \\
+kuzhi\_paniyaram   & 35 & 7 & 8 & 50 \\
+unni\_appam        & 35 & 7 & 8 & 50 \\
+\midrule
+\textbf{Total}  & \textbf{420} & \textbf{84} & \textbf{96} & \textbf{600} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+% ═════════════════════════════════════════════════════════════════════════════
+\section{Data Preparation Pipeline}
+% ═════════════════════════════════════════════════════════════════════════════
+
+The data preparation phase was executed in two sequential Jupyter notebooks on Google Colab (GPU: NVIDIA T4).
+
+\subsection{Phase 1A — Acquisition \& Splitting (\texttt{Phase\_1\_Data\_Prep.ipynb})}
+
+\begin{enumerate}[leftmargin=1.5em]
+  \item \textbf{Mount Google Drive} — all outputs persist across Colab sessions via \texttt{/content/drive/MyDrive/SMAI\_Assignment3/}.
+  \item \textbf{Configure Kaggle API} — credentials set via environment variables and \texttt{\textasciitilde/.kaggle/kaggle.json}.
+  \item \textbf{Download dataset} — the full 355 MB archive is pulled directly using \texttt{kaggle datasets download}.
+  \item \textbf{Extract archive} — unzipped to \texttt{full\_dataset\_80\_classes/}. The internal structure is \texttt{Indian Food Images/Indian Food Images/<class>/}.
+  \item \textbf{Filter to 12 classes} — only the 12 street food folders are copied; the remaining 68 classes are ignored.
+  \item \textbf{Split per class} — each class folder is shuffled and split at indices \texttt{int(N*0.70)} and \texttt{int(N*0.85)}.
+\end{enumerate}
+
+\begin{lstlisting}[caption={Core split logic from Phase\_1\_Data\_Prep.ipynb}]
+for cls in street_food:
+    imgs = [f for f in os.listdir(src) if f.lower().endswith(('.png','.jpg','.jpeg'))]
+    random.shuffle(imgs)
+    train_idx, val_idx = int(len(imgs)*0.7), int(len(imgs)*0.85)
+
+    for name, split in [
+        ('train', imgs[:train_idx]),
+        ('val',   imgs[train_idx:val_idx]),
+        ('test',  imgs[val_idx:])
+    ]:
+        dst = os.path.join(output_dir, name, cls)
+        os.makedirs(dst, exist_ok=True)
+        for img in split:
+            shutil.copy(os.path.join(src, img), os.path.join(dst, img))
+\end{lstlisting}
+
+\subsection{Phase 1B — Offline Augmentation (\texttt{Phase\_1\_Perform\_Augmentation.ipynb})}
+
+With only 35 images per class in training, the model is highly prone to overfitting. To mitigate this, offline augmentation was applied: each original image generates \textbf{2 additional augmented versions}, tripling the effective training set size.
+
+\subsubsection{Augmentation Pipeline}
+
+\begin{lstlisting}[caption={Augmentation transforms applied per image}]
+aug_pipeline = transforms.Compose([
+    transforms.RandomHorizontalFlip(p=0.5),
+    transforms.RandomRotation(degrees=15),
+    transforms.ColorJitter(brightness=0.2, contrast=0.2)
+])
+\end{lstlisting}
+
+Augmented images are saved alongside originals with the naming convention \texttt{<basename>\_aug1.jpg}, \texttt{<basename>\_aug2.jpg}. Only training images are augmented; validation and test sets remain untouched to simulate real-world inference conditions.
+
+\subsubsection{Augmented Dataset Counts}
+
+\begin{table}[H]
+\centering
+\caption{Dataset Counts After Augmentation}
+\label{tab:augmented}
+\renewcommand{\arraystretch}{1.2}
+\begin{tabular}{@{} lcccccc @{}}
+\toprule
+\textbf{Class} & \textbf{Train (Orig)} & \textbf{Train (Aug)} & \textbf{Train Total} & \textbf{Val} & \textbf{Test} & \textbf{Grand Total} \\
+\midrule
+aloo\_tikki       & 35 & 70 & 105 & 7 & 8 & 120 \\
+bhatura           & 35 & 70 & 105 & 7 & 8 & 120 \\
+chana\_masala     & 35 & 70 & 105 & 7 & 8 & 120 \\
+daal\_puri        & 35 & 70 & 105 & 7 & 8 & 120 \\
+jalebi            & 35 & 70 & 105 & 7 & 8 & 120 \\
+kachori           & 35 & 70 & 105 & 7 & 8 & 120 \\
+lassi             & 35 & 70 & 105 & 7 & 8 & 120 \\
+litti\_chokha     & 35 & 70 & 105 & 7 & 8 & 120 \\
+poha              & 35 & 70 & 105 & 7 & 8 & 120 \\
+rabri             & 35 & 70 & 105 & 7 & 8 & 120 \\
+kuzhi\_paniyaram  & 35 & 70 & 105 & 7 & 8 & 120 \\
+unni\_appam       & 35 & 70 & 105 & 7 & 8 & 120 \\
+\midrule
+\textbf{Total} & \textbf{420} & \textbf{840} & \textbf{1,260} & \textbf{84} & \textbf{96} & \textbf{1,440} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+% ═════════════════════════════════════════════════════════════════════════════
+\section{Model Architecture}
+% ═════════════════════════════════════════════════════════════════════════════
+
+\subsection{Base Model — MobileNetV2}
+
+MobileNetV2 was chosen as the base architecture for its excellent accuracy-to-parameter ratio, making it well-suited for deployment in a lightweight Streamlit app. It uses depthwise separable convolutions and inverted residuals with linear bottlenecks.
+
+\begin{table}[H]
+\centering
+\caption{MobileNetV2 Architecture Summary}
+\label{tab:arch}
+\renewcommand{\arraystretch}{1.2}
+\begin{tabular}{@{} ll @{}}
+\toprule
+\textbf{Property} & \textbf{Value} \\
+\midrule
+Architecture         & MobileNetV2 \\
+Pretrained weights   & ImageNet (1,000 classes) \\
+Input size           & $224 \times 224 \times 3$ \\
+Last channel width   & 1,280 \\
+Modified layer       & \texttt{classifier[1]} \\
+Output classes       & 12 (street food) \\
+Total parameters     & $\approx 3.4\text{M}$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Transfer Learning Strategy}
+
+The final fully-connected classifier layer was replaced with a new linear layer mapping from 1,280 features to 12 output logits:
+
+\begin{lstlisting}[caption={Classifier head replacement}]
+model = models.mobilenet_v2(pretrained=True)
+model.classifier[1] = nn.Linear(model.last_channel, 12)
+\end{lstlisting}
+
+All convolutional layers retained their ImageNet pre-trained weights. Fine-tuning was applied to the full network (not frozen) to allow domain adaptation to food images.
+
+\subsection{Inference Transform}
+
+At inference time, images are pre-processed with a deterministic pipeline (no augmentation):
+
+\begin{lstlisting}[caption={Inference pre-processing pipeline (model\_inference.py)}]
+transform = transforms.Compose([
+    transforms.Resize((224, 224)),
+    transforms.ToTensor(),
+    # Note: ImageNet normalisation can be added here for improved accuracy
+])
+\end{lstlisting}
+
+Softmax is applied over the 12 logits to obtain class probabilities, and \texttt{torch.max} selects the predicted class and its confidence score.
+
+% ═════════════════════════════════════════════════════════════════════════════
+\section{Training}
+% ═════════════════════════════════════════════════════════════════════════════
+
+\subsection{Training Configuration}
+
+\begin{table}[H]
+\centering
+\caption{Training Hyperparameters}
+\label{tab:hyperparams}
+\renewcommand{\arraystretch}{1.2}
+\begin{tabular}{@{} ll @{}}
+\toprule
+\textbf{Hyperparameter} & \textbf{Value} \\
+\midrule
+Epochs            & 10 \\
+Batch size        & $\approx 32$ (40 batches for 1,260 train images) \\
+Optimiser         & Adam \\
+Loss function     & Cross Entropy Loss \\
+Hardware          & Google Colab (NVIDIA T4 GPU) \\
+Image size        & $224 \times 224$ \\
+Classes           & 12 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Training \& Validation Results}
+
+Table~\ref{tab:training} records the average training loss and validation accuracy at each epoch. The best model (Epoch 7, Val Acc = \textbf{83.33\%}) was saved to \texttt{food\_model.pth}.
+
+\begin{table}[H]
+\centering
+\caption{Per-Epoch Training Loss and Validation Accuracy}
+\label{tab:training}
+\renewcommand{\arraystretch}{1.3}
+\begin{tabular}{@{} cccc @{}}
+\toprule
+\textbf{Epoch} & \textbf{Avg. Training Loss} & \textbf{Validation Accuracy} & \textbf{Notes} \\
+\midrule
+1  & 1.2369 & 78.57\% & Rapid initial convergence \\
+2  & 0.7392 & 79.76\% & Loss drop of 40\%  \\
+3  & 0.5421 & 82.14\% & First significant val jump \\
+4  & 0.4428 & 79.76\% & Slight val regression \\
+5  & 0.3686 & 82.14\% & Recovery \\
+6  & 0.3238 & 79.76\% & Minor oscillation \\
+7  & 0.2736 & \textbf{83.33\%} & \textbf{Best model — saved} \\
+8  & 0.2447 & 80.95\% & Slight drop after peak \\
+9  & 0.2272 & 82.14\% & Continued loss reduction \\
+10 & 0.2121 & 82.14\% & Training converged \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Learning Curve}
+
+Figure~\ref{fig:curves} shows the training loss and validation accuracy over 10 epochs, rendered from the logged values.
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}
+\begin{axis}[
+    width=0.85\textwidth,
+    height=7cm,
+    xlabel={Epoch},
+    ylabel={Training Loss},
+    xtick={1,2,3,4,5,6,7,8,9,10},
+    grid=major,
+    grid style={dashed, gray!30},
+    title={Training Loss per Epoch},
+    title style={font=\bfseries},
+    legend pos=north east,
+    ymin=0, ymax=1.4,
+    axis lines=left,
+    line width=1.2pt,
+]
+\addplot[color=accentorange, mark=*, mark size=2pt]
+    coordinates {
+        (1,1.2369)(2,0.7392)(3,0.5421)(4,0.4428)(5,0.3686)
+        (6,0.3238)(7,0.2736)(8,0.2447)(9,0.2272)(10,0.2121)
+    };
+\addlegendentry{Avg. Train Loss}
+\end{axis}
+\end{tikzpicture}
+
+\vspace{0.5cm}
+
+\begin{tikzpicture}
+\begin{axis}[
+    width=0.85\textwidth,
+    height=7cm,
+    xlabel={Epoch},
+    ylabel={Validation Accuracy (\%)},
+    xtick={1,2,3,4,5,6,7,8,9,10},
+    grid=major,
+    grid style={dashed, gray!30},
+    title={Validation Accuracy per Epoch},
+    title style={font=\bfseries},
+    legend pos=south east,
+    ymin=75, ymax=88,
+    axis lines=left,
+    line width=1.2pt,
+]
+\addplot[color=primaryblue, mark=square*, mark size=2pt]
+    coordinates {
+        (1,78.57)(2,79.76)(3,82.14)(4,79.76)(5,82.14)
+        (6,79.76)(7,83.33)(8,80.95)(9,82.14)(10,82.14)
+    };
+\addplot[color=successgreen, dashed, line width=1pt]
+    coordinates {(1,83.33)(10,83.33)};
+\addlegendentry{Val Accuracy}
+\addlegendentry{Best (83.33\%)}
+\end{axis}
+\end{tikzpicture}
+\caption{Training loss (top) and validation accuracy (bottom) across 10 epochs}
+\label{fig:curves}
+\end{figure}
+
+\subsection{Observations}
+
+\begin{itemize}[leftmargin=1.5em]
+  \item Training loss decreases \textbf{monotonically} from 1.24 to 0.21, indicating successful gradient-based optimisation.
+  \item Validation accuracy \textbf{oscillates} between $\approx$79–83\%, suggesting moderate overfitting on the small dataset.
+  \item The best validation accuracy of \textbf{83.33\%} is achieved at Epoch 7, after which the model begins to slightly overfit.
+  \item The gap between training convergence and validation plateau can be addressed by stronger regularisation or a larger dataset.
+\end{itemize}
+
+% ═════════════════════════════════════════════════════════════════════════════
+\section{Inference System (\texttt{model\_inference.py})}
+% ═════════════════════════════════════════════════════════════════════════════
+
+The inference module is intentionally decoupled from the UI to ensure the model logic can be tested independently. It exposes two public functions:
+
+\begin{itemize}[leftmargin=1.5em]
+  \item \texttt{load\_model(path)} — Rebuilds the MobileNetV2 architecture with the 12-class head and loads the saved \texttt{.pth} weights. Sets model to \texttt{eval()} mode.
+  \item \texttt{predict(image, model)} — Applies the inference transform, runs a single forward pass under \texttt{torch.no\_grad()}, applies softmax, and returns \texttt{(class\_name, confidence)}.
+\end{itemize}
+
+\begin{lstlisting}[caption={Inference pipeline (model\_inference.py)}]
+class_names = [
+    "aloo_tikki","bhatura","chana_masala","daal_puri",
+    "jalebi","kachori","kuzhi_paniyaram","lassi",
+    "litti_chokha","poha","rabri","unni_appam"
+]
+
+def predict(image, model):
+    image = transform(image).unsqueeze(0)   # shape: [1, 3, 224, 224]
+    with torch.no_grad():
+        outputs = model(image)
+        probs = torch.nn.functional.softmax(outputs, dim=1)
+        conf, pred = torch.max(probs, 1)
+    return class_names[pred.item()], conf.item()
+\end{lstlisting}
+
+\begin{infobox}[Important: Class Order]
+The \texttt{class\_names} list in \texttt{model\_inference.py} must exactly match the alphabetical ordering used by \texttt{torchvision.datasets.ImageFolder} during training. Any mismatch will cause silent mis-labelling.
+\end{infobox}
+
+% ═════════════════════════════════════════════════════════════════════════════
+\section{Streamlit Application (\texttt{app.py})}
+% ═════════════════════════════════════════════════════════════════════════════
+
+\subsection{Architecture}
+
+The Streamlit app follows a clean single-file layout. The model is loaded once at startup using \texttt{@st.cache\_resource} to avoid redundant disk reads across interactions.
+
+\subsection{UI Layout}
+
+The app uses a \textbf{two-column layout}: the left column shows the uploaded image, and the right column streams the prediction results, progress bar, and metadata.
+
+\begin{lstlisting}[caption={Two-column prediction display (app.py)}]
+col1, col2 = st.columns(2)
+
+with col1:
+    st.image(image, caption="Uploaded Image", use_container_width=True)
+
+with col2:
+    pred, conf = predict(image, model)
+    st.subheader(f"Predicted: {pred.replace('_', ' ').title()}")
+    st.progress(int(conf * 100))
+    st.write(f"Confidence: {conf*100:.2f}%")
+\end{lstlisting}
+
+\subsection{Allergen Badge System}
+
+Allergens are displayed as colour-coded Streamlit alert boxes, providing immediate visual feedback:
+
+\begin{table}[H]
+\centering
+\caption{Allergen Badge Colour Scheme}
+\label{tab:allergens}
+\renewcommand{\arraystretch}{1.2}
+\begin{tabular}{@{} lll @{}}
+\toprule
+\textbf{Allergen} & \textbf{Streamlit Component} & \textbf{Colour} \\
+\midrule
+Gluten   & \texttt{st.error()}   & Red \\
+Dairy    & \texttt{st.warning()} & Yellow / Orange \\
+Nuts     & \texttt{st.info()}    & Blue \\
+None     & \texttt{st.success()} & Green \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Streamlit App Screenshots}
+
+The following figures show the ChaatCheck application in action. To include your own screenshots, replace the placeholder filenames with your actual image paths.
+
+% ─── Replace these with your actual screenshot files ─────────────────────────
+\begin{figure}[H]
+    \centering
+    % INSTRUCTION: Save your Streamlit screenshots as PNG files in the same
+    % directory as this .tex file, then replace the filenames below.
+    %
+    % Example:
+    %   \includegraphics[width=\textwidth]{screenshot_upload.png}
+    %
+    \fbox{\parbox{0.9\textwidth}{\centering\vspace{2cm}
+        \textbf{[Figure Placeholder]}\\[6pt]
+        Replace with: \texttt{screenshot\_upload.png}\\
+        Caption: App landing page with file uploader
+    \vspace{2cm}}}
+    \caption{ChaatCheck — Landing page and file upload interface}
+    \label{fig:app_upload}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \fbox{\parbox{0.9\textwidth}{\centering\vspace{2cm}
+        \textbf{[Figure Placeholder]}\\[6pt]
+        Replace with: \texttt{screenshot\_prediction.png}\\
+        Caption: Prediction results with confidence and allergen badges
+    \vspace{2cm}}}
+    \caption{ChaatCheck — Prediction result view with confidence score, calories, diet type, allergen badges, and ingredient list}
+    \label{fig:app_result}
+\end{figure}
+% ─────────────────────────────────────────────────────────────────────────────
+
+\subsection{Metadata Store}
+
+All nutritional and allergen information is stored as a Python dictionary within \texttt{app.py}, keyed by class name. This allows O(1) lookup after each prediction:
+
+\begin{lstlisting}[caption={Metadata dictionary (excerpt)}]
+food_data = {
+    "jalebi": {
+        "calories": "140-180",
+        "allergens": ["gluten"],
+        "diet": "veg",
+        "ingredients": ["maida", "sugar syrup", "ghee"]
+    },
+    "lassi": {
+        "calories": "150-200",
+        "allergens": ["dairy"],
+        "diet": "veg",
+        "ingredients": ["curd", "sugar", "cardamom"]
+    },
+    # ... (12 entries total)
+}
+\end{lstlisting}
+
+% ═════════════════════════════════════════════════════════════════════════════
+\section{Repository Structure}
+% ═════════════════════════════════════════════════════════════════════════════
+
+\begin{lstlisting}[language=bash, caption={Repository layout}]
+SMAI_A3/
+├── app/
+│   ├── app.py               # Streamlit UI
+│   ├── model_inference.py   # Model loading & prediction
+│   └── food_model.pth       # Trained weights (saved at best epoch)
+│
+├── training/
+│   └── Training.ipynb       # Full training loop (Google Colab)
+│
+└── data_preparation/
+    ├── Phase_1_Data_Prep.ipynb          # Download, filter, split
+    └── Phase_1_Perform_Augmentation.ipynb   # Offline augmentation
+\end{lstlisting}
+
+% ═════════════════════════════════════════════════════════════════════════════
+\section{Results Summary}
+% ═════════════════════════════════════════════════════════════════════════════
+
+\begin{resultbox}[Final Results]
+\begin{tabular}{ll}
+\textbf{Best Validation Accuracy:} & 83.33\% (Epoch 7) \\
+\textbf{Final Training Loss:}      & 0.2121 (Epoch 10) \\
+\textbf{Model Size:}               & $\approx$14 MB (\texttt{food\_model.pth}) \\
+\textbf{Inference Speed:}          & $<$100ms on CPU \\
+\textbf{Classes:}                  & 12 street food categories \\
+\textbf{Training Images:}          & 1,260 (after 3× augmentation) \\
+\end{tabular}
+\end{resultbox}
+
+% ═════════════════════════════════════════════════════════════════════════════
+\section{Limitations \& Future Work}
+% ═════════════════════════════════════════════════════════════════════════════
+
+\subsection{Current Limitations}
+
+\begin{itemize}[leftmargin=1.5em]
+  \item \textbf{Small dataset:} Only 50 original images per class. The model has not seen enough real-world diversity in lighting, angle, and plating styles.
+  \item \textbf{Validation oscillation:} Accuracy fluctuates across epochs, indicating the model is sensitive to the small validation set (only 7 images per class).
+  \item \textbf{No ImageNet normalisation:} The inference transform omits mean/std normalisation, which may reduce accuracy compared to a properly normalised pipeline.
+  \item \textbf{Static metadata:} Calorie estimates are hard-coded approximations, not queried from a structured nutrition database.
+\end{itemize}
+
+\subsection{Proposed Improvements}
+
+\begin{enumerate}[leftmargin=1.5em]
+  \item \textbf{Expand dataset:} Scrape additional images from food blogs or use the IFCT 2017 dataset for more nutrition accuracy.
+  \item \textbf{Add ImageNet normalisation:} Apply mean \texttt{[0.485, 0.456, 0.406]} and std \texttt{[0.229, 0.224, 0.225]} to potentially improve accuracy by 3--5\%.
+  \item \textbf{Learning rate scheduler:} Use \texttt{CosineAnnealingLR} or \texttt{ReduceLROnPlateau} to avoid the observed oscillation in validation accuracy.
+  \item \textbf{Confusion matrix analysis:} Add per-class accuracy reporting to identify which classes the model struggles with most.
+  \item \textbf{Expand to Tier 2 / Tier 3:} Scale from 12 to 30 or all 80 classes using progressive training.
+  \item \textbf{Mobile deployment:} Export to ONNX or TorchScript for real-time on-device inference.
+\end{enumerate}
+
+% ═════════════════════════════════════════════════════════════════════════════
+\section{Conclusion}
+% ═════════════════════════════════════════════════════════════════════════════
+
+ChaatCheck demonstrates that transfer learning with MobileNetV2 is effective even on a small, domain-specific dataset of Indian street food images. Starting from just 600 raw images (50 per class), the system achieves a best validation accuracy of \textbf{83.33\%} after offline augmentation and 10 epochs of fine-tuning. The end-to-end pipeline — from Kaggle data acquisition through augmentation, training, and a fully functional Streamlit deployment — is modular, reproducible, and documented for extension to broader food recognition tasks.
+
+The allergen detection and calorie estimation features make this a practically useful tool beyond a pure academic exercise, with real-world relevance for dietary tracking and food-safety applications.
+
+% ═════════════════════════════════════════════════════════════════════════════
+\section*{References}
+\addcontentsline{toc}{section}{References}
+% ═════════════════════════════════════════════════════════════════════════════
+
+\begin{enumerate}[leftmargin=1.5em, label={[\arabic*]}]
+  \item Banerjee, S. \textit{Indian Food Images Dataset}. Kaggle, 2022. \url{https://www.kaggle.com/datasets/iamsouravbanerjee/indian-food-images-dataset}
+
+  \item Sandler, M., Howard, A., Zhu, M., Zhmoginov, A., \& Chen, L. C. (2018). \textit{MobileNetV2: Inverted Residuals and Linear Bottlenecks}. CVPR 2018.
+
+  \item Prabhavalkar, N. \textit{Indian Food 101}. Kaggle. \url{https://www.kaggle.com/datasets/nehaprabhavalkar/indian-food-classification}
+
+  \item National Institute of Nutrition. \textit{Indian Food Composition Tables (IFCT 2017)}. \url{https://www.nin.res.in}
+
+  \item PyTorch. \textit{TorchVision Models — MobileNetV2}. \url{https://pytorch.org/vision/stable/models/mobilenet_v2.html}
+
+  \item Streamlit. \textit{Streamlit Documentation}. \url{https://docs.streamlit.io}
+\end{enumerate}
+
+\end{document}
