@@ -1,7 +1,7 @@
 # 🍛 ChaatCheck — Indian Street Food Recognizer
 ### SMAI Assignment 3 · Task T2.4 (Street Food Tier 1)
 
-> **Point your phone at a thali; the app names every dish, estimates calories, and flags allergens (gluten, dairy, nuts) — in real time.**
+> **upload Image of a thali; the app names every dish, estimates calories, and flags allergens (gluten, dairy, nuts) — in real time.**
 
 [![Python](https://img.shields.io/badge/Python-3.8+-blue.svg)](https://python.org)
 [![Streamlit](https://img.shields.io/badge/Streamlit-1.x-red.svg)](https://streamlit.io)
@@ -45,7 +45,7 @@ SMAI_A3/
 
 ---
 
-## 🍱 The 12 Street Food Classes
+## 🍱 The 12 Street Food Classes  ->exact data present in app.py 
 
 | # | Class | Approx. Calories | Allergens | Diet |
 |---|-------|-----------------|-----------|------|
