@@ -6,6 +6,8 @@ full_dataset_80_classes/
 *.tar
 *.gz
 
+app/venv
+app/__pycache__
 # Credentials
 kaggle.json
 
