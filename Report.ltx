@@ -22,6 +22,8 @@
 \usepackage{tcolorbox}
 \usepackage{pgfplots}
 \usepackage{tikz}
+\usetikzlibrary{positioning}
+\usepackage{colortbl}
 \usepackage{fontawesome5}
 \usepackage{mdframed}
 \usepackage{parskip}
@@ -54,6 +56,8 @@
 
 % ─── Header / Footer ─────────────────────────────────────────────────────────
 \pagestyle{fancy}
+\setlength{\headheight}{14.5pt}
+\addtolength{\topmargin}{-2.5pt}
 \fancyhf{}
 \fancyhead[L]{\textcolor{primaryblue}{\textbf{ChaatCheck}} — Indian Street Food Recognizer}
 \fancyhead[R]{\textcolor{darkgray}{SMAI Assignment 3}}
@@ -147,9 +151,27 @@
     \textbf{Dataset:}   & Indian Food Images (Kaggle, 80 classes → 12 selected) \\[4pt]
   \end{tabular}
 
+  \vspace{1.2cm}
+
+  \begin{tabular}{rl}
+    \textbf{Team Members:} & \\[6pt]
+    Karthik Nallala        & \texttt{2025201095} \\[3pt]
+    Suresh Kumar Vuyala    & \texttt{2025201051} \\[3pt]
+    Chaitanya Kadupukutla  & \texttt{2025201077} \\[3pt]
+  \end{tabular}
+
   \vfill
+  {\small\color{darkgray} International Institute of Information Technology, Hyderabad}\\[2pt]
+  {\small\color{darkgray} Academic Year 2025--26}\\[2pt]
   {\small\color{darkgray} Submitted in partial fulfilment of SMAI Assignment 3 requirements}
 \end{titlepage}
+
+% ─── Abstract ─────────────────────────────────────────────────────────────────
+\begin{abstract}
+\noindent
+This report presents \textbf{ChaatCheck}, an end-to-end deep learning application for recognising 12 categories of Indian street food from photographs. We fine-tune a MobileNetV2 backbone pre-trained on ImageNet using a two-stage transfer learning strategy: first training only the classifier head on frozen convolutional features, then partially unfreezing the last three convolutional blocks for domain adaptation. The model is trained on 1,260 images (50 original per class, augmented 3$\times$ with random flips, rotations, and colour jitter) and evaluated on a held-out test set of 96 images, achieving a test accuracy of \textbf{83.33\%} with a macro F1-score of \textbf{0.81}. Per-class analysis reveals that visually distinctive dishes (e.g., jalebi, F1 = 1.00) are classified near-perfectly, while visually similar fried items (e.g., daal\_puri, F1 = 0.33) remain challenging. The trained model is deployed via a Streamlit web application that provides real-time predictions alongside estimated calorie counts, dietary labels, ingredient lists, and colour-coded allergen warnings.
+\end{abstract}
+\newpage
 
 % ─── Table of Contents ───────────────────────────────────────────────────────
 \tableofcontents
@@ -334,7 +356,24 @@ unni\_appam       & 35 & 70 & 105 & 7 & 8 & 120 \\
 
 \subsection{Base Model — MobileNetV2}
 
-MobileNetV2 was chosen as the base architecture for its excellent accuracy-to-parameter ratio, making it well-suited for deployment in a lightweight Streamlit app. It uses depthwise separable convolutions and inverted residuals with linear bottlenecks.
+MobileNetV2~\cite{mobilenetv2} was selected over heavier alternatives (e.g., ResNet-50 at $\approx$25M parameters) for its strong accuracy-to-parameter ratio ($\approx$3.4M parameters), making it well-suited for real-time inference in a lightweight Streamlit deployment. The architecture introduces two key innovations:
+
+\subsubsection{Depthwise Separable Convolutions}
+
+Standard convolutions apply a $k \times k$ filter across \textit{all} input channels simultaneously, requiring $k^2 \cdot C_{\text{in}} \cdot C_{\text{out}}$ multiplications per spatial position. MobileNetV2 factorises this into two steps:
+
+\begin{enumerate}[leftmargin=1.5em]
+  \item \textbf{Depthwise convolution} — a single $k \times k$ filter per input channel ($k^2 \cdot C_{\text{in}}$ operations).
+  \item \textbf{Pointwise convolution} — a $1 \times 1$ convolution to mix channels ($C_{\text{in}} \cdot C_{\text{out}}$ operations).
+\end{enumerate}
+
+\noindent This reduces computation by a factor of approximately $\frac{1}{C_{\text{out}}} + \frac{1}{k^2}$, which for $k=3$ and $C_{\text{out}} = 32$ yields a $\sim$8--9$\times$ speedup over standard convolutions.
+
+\subsubsection{Inverted Residual Blocks with Linear Bottlenecks}
+
+Unlike ResNet's bottleneck (which \textit{compresses} to a lower dimension, processes, then \textit{expands}), MobileNetV2's inverted residual blocks do the opposite: they \textbf{expand} the channel dimension via a $1 \times 1$ convolution (expansion factor $t = 6$), apply a depthwise $3 \times 3$ convolution in the expanded space, then \textbf{project back} to a narrow bottleneck. Residual connections are added between the narrow bottleneck layers.
+
+Crucially, the final projection uses a \textbf{linear activation} (no ReLU) because ReLU destroys information in low-dimensional spaces — a key insight from the MobileNetV2 paper that preserves representational capacity in the bottleneck.
 
 \begin{table}[H]
 \centering
@@ -356,16 +395,74 @@ Total parameters     & $\approx 3.4\text{M}$ \\
 \end{tabular}
 \end{table}
 
+\subsection{Pipeline Architecture Diagram}
+
+Figure~\ref{fig:pipeline} illustrates the end-to-end inference pipeline from raw input image to final prediction.
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[node distance=0.6cm, every node/.style={font=\small},
+    block/.style={rectangle, draw=primaryblue, fill=primaryblue!8, rounded corners=4pt,
+                  minimum width=3.8cm, minimum height=0.9cm, align=center, line width=0.8pt},
+    arrow/.style={->, >=stealth, line width=1pt, color=darkgray}]
+
+  \node[block] (input)  {\textbf{Input Image}\\$224 \times 224 \times 3$};
+  \node[block, below=of input] (conv)  {\textbf{MobileNetV2 Features}\\18 conv blocks (frozen/fine-tuned)};
+  \node[block, below=of conv] (pool)   {\textbf{Global Avg Pooling}\\$1280 \times 1 \times 1 \to 1280$};
+  \node[block, below=of pool] (drop)   {\textbf{Dropout} ($p = 0.2$)};
+  \node[block, below=of drop] (fc)     {\textbf{Linear Layer}\\$1280 \to 12$};
+  \node[block, below=of fc, fill=successgreen!10, draw=successgreen] (soft) {\textbf{Softmax}\\12 class probabilities};
+  \node[block, below=of soft, fill=accentorange!12, draw=accentorange] (out) {\textbf{Predicted Class}\\+ Confidence + Metadata};
+
+  \draw[arrow] (input) -- (conv);
+  \draw[arrow] (conv) -- (pool);
+  \draw[arrow] (pool) -- (drop);
+  \draw[arrow] (drop) -- (fc);
+  \draw[arrow] (fc) -- (soft);
+  \draw[arrow] (soft) -- (out);
+
+\end{tikzpicture}
+\caption{End-to-end inference pipeline: from input image to predicted dish with confidence score and metadata lookup}
+\label{fig:pipeline}
+\end{figure}
+
 \subsection{Transfer Learning Strategy}
 
-The final fully-connected classifier layer was replaced with a new linear layer mapping from 1,280 features to 12 output logits:
+A \textbf{two-stage fine-tuning} approach was employed to balance feature reuse from ImageNet with domain adaptation to Indian street food images.
 
-\begin{lstlisting}[caption={Classifier head replacement}]
+\subsubsection{Stage 1 — Classifier-Only Training}
+
+All convolutional (feature extraction) layers were \textbf{frozen}, and only the newly added classifier head was trained. This allows the randomly initialised classifier to converge using the stable, high-quality features from ImageNet, without corrupting the pre-trained convolutional weights.
+
+\begin{lstlisting}[caption={Stage 1: Freeze backbone, train classifier only}]
 model = models.mobilenet_v2(pretrained=True)
+
+# Freeze all convolutional layers
+for param in model.parameters():
+    param.requires_grad = False
+
+# Replace classifier head: 1280 -> 12 classes
 model.classifier[1] = nn.Linear(model.last_channel, 12)
+
+# Only classifier parameters are trainable
+for param in model.classifier.parameters():
+    param.requires_grad = True
+
+optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
 \end{lstlisting}
 
-All convolutional layers retained their ImageNet pre-trained weights. Fine-tuning was applied to the full network (not frozen) to allow domain adaptation to food images.
+\subsubsection{Stage 2 — Partial Unfreezing (Gradual Fine-Tuning)}
+
+After the classifier converged (10 epochs), the \textbf{last 3 convolutional blocks} (\texttt{features[-3:]}) were unfrozen with a \textbf{reduced learning rate} ($10^{-4}$) to allow the deeper layers to adapt to food-specific features while avoiding catastrophic forgetting of the general-purpose ImageNet representations.
+
+\begin{lstlisting}[caption={Stage 2: Unfreeze last 3 blocks for fine-tuning}]
+for param in model.features[-3:].parameters():
+    param.requires_grad = True
+
+optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
+\end{lstlisting}
+
+This two-stage strategy is a well-established transfer learning technique: the frozen-backbone stage prevents the randomly initialised classifier from sending noisy gradients through the pre-trained features, while the subsequent partial unfreezing allows domain-specific adaptation in the higher convolutional layers.
 
 \subsection{Inference Transform}
 
@@ -406,6 +503,15 @@ Classes           & 12 \\
 \bottomrule
 \end{tabular}
 \end{table}
+
+\subsection{Hyperparameter Rationale}
+
+\begin{itemize}[leftmargin=1.5em]
+  \item \textbf{Adam optimiser} was chosen over SGD because Adam's per-parameter adaptive learning rates are well-suited for fine-tuning scenarios where the classifier head (randomly initialised) and the backbone (pre-trained) have very different gradient magnitudes. Adam converges faster on small datasets where SGD's momentum-based updates may oscillate.
+  \item \textbf{CrossEntropyLoss} combines \texttt{LogSoftmax} and \texttt{NLLLoss} into a single numerically stable operation, and is the standard choice for multi-class classification with mutually exclusive labels.
+  \item \textbf{Batch size 32} balances GPU memory utilisation (Google Colab T4 with 15 GB VRAM) with sufficient gradient noise to aid generalisation on a small dataset. Larger batches (64, 128) risk memorising the limited training data.
+  \item \textbf{Learning rate ($10^{-3}$ for Stage 1, $10^{-4}$ for Stage 2):} The 10$\times$ reduction in Stage 2 ensures that the unfrozen convolutional layers are updated gently, preserving the useful ImageNet features while allowing domain-specific adaptation.
+\end{itemize}
 
 \subsection{Training \& Validation Results}
 
@@ -586,34 +692,32 @@ None     & \texttt{st.success()} & Green \\
 
 \subsection{Streamlit App Screenshots}
 
-The following figures show the ChaatCheck application in action. To include your own screenshots, replace the placeholder filenames with your actual image paths.
+The following figures show the ChaatCheck application running locally via Streamlit, demonstrating predictions on three different food items with varying confidence levels and allergen profiles.
 
-% ─── Replace these with your actual screenshot files ─────────────────────────
+% ─── Real App Screenshots ────────────────────────────────────────────────────
 \begin{figure}[H]
     \centering
-    % INSTRUCTION: Save your Streamlit screenshots as PNG files in the same
-    % directory as this .tex file, then replace the filenames below.
-    %
-    % Example:
-    %   \includegraphics[width=\textwidth]{screenshot_upload.png}
-    %
-    \fbox{\parbox{0.9\textwidth}{\centering\vspace{2cm}
-        \textbf{[Figure Placeholder]}\\[6pt]
-        Replace with: \texttt{screenshot\_upload.png}\\
-        Caption: App landing page with file uploader
-    \vspace{2cm}}}
-    \caption{ChaatCheck — Landing page and file upload interface}
+    \includegraphics[width=0.92\textwidth]{resultImages/bature.png}
+    \caption{ChaatCheck prediction for \textit{Bhatura} — 79.90\% confidence, with Gluten allergen flagged (red badge). The two-column layout shows the uploaded image on the left and prediction metadata on the right.}
     \label{fig:app_upload}
 \end{figure}
 
 \begin{figure}[H]
     \centering
-    \fbox{\parbox{0.9\textwidth}{\centering\vspace{2cm}
-        \textbf{[Figure Placeholder]}\\[6pt]
-        Replace with: \texttt{screenshot\_prediction.png}\\
-        Caption: Prediction results with confidence and allergen badges
-    \vspace{2cm}}}
-    \caption{ChaatCheck — Prediction result view with confidence score, calories, diet type, allergen badges, and ingredient list}
+    \begin{subfigure}[t]{0.48\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{resultImages/poha.png}
+        \caption{Poha — 99.99\% confidence, Nuts allergen (blue)}
+        \label{fig:app_poha}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[t]{0.48\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{resultImages/rabri.png}
+        \caption{Rabri — 94.32\% confidence, Dairy + Nuts (two badges)}
+        \label{fig:app_rabri}
+    \end{subfigure}
+    \caption{ChaatCheck predictions demonstrating different allergen badge types: single allergen (left) and multiple allergens (right)}
     \label{fig:app_result}
 \end{figure}
 % ─────────────────────────────────────────────────────────────────────────────
@@ -644,20 +748,20 @@ food_data = {
 \section{Repository Structure}
 % ═════════════════════════════════════════════════════════════════════════════
 
-\begin{lstlisting}[language=bash, caption={Repository layout}]
+\begin{verbatim}
 SMAI_A3/
-├── app/
-│   ├── app.py               # Streamlit UI
-│   ├── model_inference.py   # Model loading & prediction
-│   └── food_model.pth       # Trained weights (saved at best epoch)
-│
-├── training/
-│   └── Training.ipynb       # Full training loop (Google Colab)
-│
-└── data_preparation/
-    ├── Phase_1_Data_Prep.ipynb          # Download, filter, split
-    └── Phase_1_Perform_Augmentation.ipynb   # Offline augmentation
-\end{lstlisting}
+|-- app/
+|   |-- app.py               # Streamlit UI
+|   |-- model_inference.py   # Model loading & prediction
+|   +-- food_model.pth       # Trained weights (saved at best epoch)
+|
+|-- training/
+|   +-- Training.ipynb       # Full training loop (Google Colab)
+|
++-- data_preparation/
+    |-- Phase_1_Data_Prep.ipynb          # Download, filter, split
+    +-- Phase_1_Perform_Augmentation.ipynb   # Offline augmentation
+\end{verbatim}
 
 % ═════════════════════════════════════════════════════════════════════════════
 \section{Results Summary}
@@ -665,14 +769,94 @@ SMAI_A3/
 
 \begin{resultbox}[Final Results]
 \begin{tabular}{ll}
-\textbf{Best Validation Accuracy:} & 83.33\% (Epoch 7) \\
+\textbf{Best Validation Accuracy:} & 83.33\% (Epoch 7 of Stage 1) \\
+\textbf{Test Accuracy:}            & \textbf{83.33\%} (96 images, 8 per class) \\
 \textbf{Final Training Loss:}      & 0.2121 (Epoch 10) \\
-\textbf{Model Size:}               & $\approx$14 MB (\texttt{food\_model.pth}) \\
+\textbf{Model Size:}               & $\approx$9 MB (\texttt{food\_model.pth}) \\
 \textbf{Inference Speed:}          & $<$100ms on CPU \\
 \textbf{Classes:}                  & 12 street food categories \\
-\textbf{Training Images:}          & 1,260 (after 3× augmentation) \\
+\textbf{Training Images:}          & 1,260 (after 3$\times$ augmentation) \\
 \end{tabular}
 \end{resultbox}
+
+The close alignment between validation accuracy (83.33\%) and test accuracy (83.33\%) indicates that the model generalises well to unseen data and is not overfitting to the validation set. This consistency is encouraging given the small dataset size (only 50 original images per class).
+
+\subsection{Per-Class Classification Report}
+
+Table~\ref{tab:classreport} presents the per-class precision, recall, and F1-score computed on the validation set (84 images, 7 per class). These metrics were derived from the confusion matrix generated during training.
+
+\begin{table}[H]
+\centering
+\caption{Per-Class Precision, Recall, and F1-Score (Validation Set)}
+\label{tab:classreport}
+\renewcommand{\arraystretch}{1.3}
+\begin{tabular}{@{} l c c c c @{}}
+\toprule
+\textbf{Class} & \textbf{Precision} & \textbf{Recall} & \textbf{F1-Score} & \textbf{Support} \\
+\midrule
+aloo\_tikki        & 1.00 & 0.86 & 0.92 & 7 \\
+bhatura            & 0.78 & 1.00 & 0.88 & 7 \\
+chana\_masala      & 0.88 & 1.00 & 0.93 & 7 \\
+\rowcolor{codered!8} daal\_puri         & 0.40 & 0.29 & \textbf{0.33} & 7 \\
+jalebi             & 1.00 & 1.00 & \textbf{1.00} & 7 \\
+\rowcolor{codered!8} kachori            & 0.62 & 0.71 & \textbf{0.67} & 7 \\
+kuzhi\_paniyaram   & 0.75 & 0.86 & 0.80 & 7 \\
+lassi              & 0.86 & 0.86 & 0.86 & 7 \\
+\rowcolor{codered!8} litti\_chokha      & 1.00 & 0.43 & \textbf{0.60} & 7 \\
+poha               & 0.88 & 1.00 & 0.93 & 7 \\
+rabri              & 1.00 & 0.86 & 0.92 & 7 \\
+unni\_appam        & 0.78 & 1.00 & 0.88 & 7 \\
+\midrule
+\textbf{Macro Avg}    & \textbf{0.83} & \textbf{0.82} & \textbf{0.81} & 84 \\
+\textbf{Weighted Avg} & \textbf{0.83} & \textbf{0.82} & \textbf{0.81} & 84 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsubsection{Key Observations}
+
+\begin{itemize}[leftmargin=1.5em]
+  \item \textbf{Best performer:} \textit{jalebi} achieves a perfect F1-score of 1.00. Its distinctive bright orange colour and spiral shape make it visually unambiguous.
+  \item \textbf{Worst performer:} \textit{daal\_puri} (F1 = 0.33) is frequently confused with \textit{bhatura} (2 misclassifications), \textit{kachori} (2), and \textit{poha} (1). All three are visually similar deep-fried items with comparable colour and texture.
+  \item \textbf{Low recall:} \textit{litti\_chokha} has perfect precision (1.00) but very low recall (0.43) — the model correctly identifies it when it predicts it, but fails to recognise 4 out of 7 samples, misclassifying them across 4 different classes.
+  \item \textbf{Pattern:} Classes with unique visual signatures (jalebi, poha, unni\_appam) perform best, while classes sharing a ``fried dough'' appearance (daal\_puri, kachori, bhatura) show the most cross-confusion.
+\end{itemize}
+
+\subsection{Confusion Matrix}
+
+Figure~\ref{fig:confmatrix} shows the full $12 \times 12$ confusion matrix on the validation set. The strong diagonal confirms that most classes are well-separated. The most notable off-diagonal cluster is in the \textit{daal\_puri} row, where misclassifications are spread across \textit{bhatura} (2), \textit{kachori} (2), and \textit{poha} (1) — all visually similar items.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.85\textwidth]{resultImages/confusion_matrix.png}
+    \caption{Confusion matrix on the validation set (84 images, 7 per class). Diagonal entries represent correct predictions; off-diagonal entries indicate misclassifications.}
+    \label{fig:confmatrix}
+\end{figure}
+
+\subsection{Error Analysis}
+
+A closer inspection of the confusion matrix (Figure~\ref{fig:confmatrix}) and the per-class metrics (Table~\ref{tab:classreport}) reveals three distinct failure modes:
+
+\subsubsection{Failure Mode 1: The Fried-Dough Cluster}
+
+\textit{daal\_puri}, \textit{kachori}, and \textit{bhatura} form a confusion cluster. All three are deep-fried, wheat-based items with similar golden-brown colour and round shape. Specifically:
+
+\begin{itemize}[leftmargin=1.5em]
+  \item Of 7 \textit{daal\_puri} samples, only 2 were correctly classified. Two were predicted as \textit{bhatura}, two as \textit{kachori}, and one as \textit{poha}.
+  \item Of 7 \textit{kachori} samples, 2 were misclassified as \textit{daal\_puri} — confirming a bidirectional confusion between these two classes.
+\end{itemize}
+
+\noindent This suggests that the convolutional features extracted by MobileNetV2 struggle to distinguish fine-grained textural differences (e.g., stuffing visibility, surface crispness) within the fried-dough category. A possible remedy is to increase the training data for these classes or apply more aggressive augmentation (e.g., random cropping to expose internal texture).
+
+\subsubsection{Failure Mode 2: High Variance in Plating (litti\_chokha)}
+
+\textit{litti\_chokha} has perfect precision (1.00) but the lowest recall of any class (0.43). The 4 misclassified samples were spread across \textit{chana\_masala} (1), \textit{kachori} (1), \textit{kuzhi\_paniyaram} (1), and \textit{unni\_appam} (1) — no single dominant confusion target.
+
+This scatter pattern indicates that the issue is not similarity to one particular class, but rather \textbf{high intra-class visual variance}: litti\_chokha is presented with varying accompaniments (chokha, chutney, daal), different plating styles, and sometimes with the litti cut open vs. whole. With only 35 original training images (105 after augmentation), the model has not learned to generalise across these presentation variants.
+
+\subsubsection{Failure Mode 3: Well-Separated Classes}
+
+Six classes achieve F1 $\geq$ 0.88: \textit{jalebi} (1.00), \textit{chana\_masala} (0.93), \textit{poha} (0.93), \textit{aloo\_tikki} (0.92), \textit{rabri} (0.92), and \textit{bhatura} (0.88). These classes share a common trait: \textbf{distinctive visual signatures} — jalebi's spiral shape, poha's flattened rice texture, rabri's creamy white appearance, and chana\_masala's characteristic chickpea-and-gravy look. Transfer learning from ImageNet is most effective when target classes have clearly separable visual features, which these classes provide.
 
 % ═════════════════════════════════════════════════════════════════════════════
 \section{Limitations \& Future Work}
@@ -681,48 +865,68 @@ SMAI_A3/
 \subsection{Current Limitations}
 
 \begin{itemize}[leftmargin=1.5em]
-  \item \textbf{Small dataset:} Only 50 original images per class. The model has not seen enough real-world diversity in lighting, angle, and plating styles.
-  \item \textbf{Validation oscillation:} Accuracy fluctuates across epochs, indicating the model is sensitive to the small validation set (only 7 images per class).
-  \item \textbf{No ImageNet normalisation:} The inference transform omits mean/std normalisation, which may reduce accuracy compared to a properly normalised pipeline.
-  \item \textbf{Static metadata:} Calorie estimates are hard-coded approximations, not queried from a structured nutrition database.
+  \item \textbf{Small dataset (50 images/class):} The original dataset contains only 50 images per class, expanded to 105 per class after augmentation. This leads to two measurable effects:
+  \begin{itemize}
+    \item \textit{daal\_puri} achieves only F1 = 0.33 (worst of all 12 classes), partly because 35 training images are insufficient to capture the visual diversity of stuffed fried breads.
+    \item \textit{litti\_chokha} achieves only F1 = 0.60 despite perfect precision, indicating the model has not seen enough plating variations.
+  \end{itemize}
+
+  \item \textbf{Validation oscillation ($\pm$3.5\%):} Validation accuracy fluctuates between 79.76\% and 83.33\% across epochs (a range of 3.57 percentage points), caused by the small validation set of only 7 images per class — a single misclassification changes accuracy by 1.19\%.
+
+  \item \textbf{Missing ImageNet normalisation:} Neither the training transforms nor the inference transform apply the standard ImageNet normalisation (mean = $[0.485, 0.456, 0.406]$, std = $[0.229, 0.224, 0.225]$). While this is \textit{internally consistent} (training and inference match), it means the pre-trained MobileNetV2 features receive inputs on a different scale than they were originally trained on, potentially reducing transfer learning effectiveness.
+
+  \item \textbf{Static metadata:} Calorie estimates and allergen information are hard-coded as a Python dictionary rather than queried from a structured nutrition database such as the IFCT 2017~\cite{ifct}.
+
+  \item \textbf{No learning rate scheduler:} A fixed learning rate throughout training contributes to the validation oscillation. Adaptive scheduling (e.g., \texttt{ReduceLROnPlateau}) would allow the optimiser to take smaller steps as it approaches convergence.
 \end{itemize}
 
 \subsection{Proposed Improvements}
 
 \begin{enumerate}[leftmargin=1.5em]
-  \item \textbf{Expand dataset:} Scrape additional images from food blogs or use the IFCT 2017 dataset for more nutrition accuracy.
-  \item \textbf{Add ImageNet normalisation:} Apply mean \texttt{[0.485, 0.456, 0.406]} and std \texttt{[0.229, 0.224, 0.225]} to potentially improve accuracy by 3--5\%.
-  \item \textbf{Learning rate scheduler:} Use \texttt{CosineAnnealingLR} or \texttt{ReduceLROnPlateau} to avoid the observed oscillation in validation accuracy.
-  \item \textbf{Confusion matrix analysis:} Add per-class accuracy reporting to identify which classes the model struggles with most.
-  \item \textbf{Expand to Tier 2 / Tier 3:} Scale from 12 to 30 or all 80 classes using progressive training.
-  \item \textbf{Mobile deployment:} Export to ONNX or TorchScript for real-time on-device inference.
+  \item \textbf{Expand dataset to 200+ images/class:} Scrape additional images from food blogs, Google Images, or the Indian Food 101 dataset~\cite{indianfood101}. Prioritise the weakest classes (daal\_puri, litti\_chokha, kachori) for targeted data collection.
+  \item \textbf{Add ImageNet normalisation:} Add \texttt{Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])} to both training and inference transforms. Based on literature, this alone can improve accuracy by 3--5\% for ImageNet-pretrained backbones.
+  \item \textbf{Learning rate scheduler:} Use \texttt{CosineAnnealingLR} or \texttt{ReduceLROnPlateau} to reduce the learning rate as training plateaus, reducing the observed validation oscillation.
+  \item \textbf{Class-specific augmentation:} Apply heavier augmentation (random cropping, cutout, Mixup) specifically to the visually ambiguous fried-dough classes to improve intra-class diversity.
+  \item \textbf{Expand to Tier 2 / Tier 3:} Scale from 12 to 30 or all 80 classes using progressive training and curriculum learning.
+  \item \textbf{Mobile deployment:} Export to ONNX or TorchScript for real-time on-device inference on smartphones.
 \end{enumerate}
 
 % ═════════════════════════════════════════════════════════════════════════════
 \section{Conclusion}
 % ═════════════════════════════════════════════════════════════════════════════
 
-ChaatCheck demonstrates that transfer learning with MobileNetV2 is effective even on a small, domain-specific dataset of Indian street food images. Starting from just 600 raw images (50 per class), the system achieves a best validation accuracy of \textbf{83.33\%} after offline augmentation and 10 epochs of fine-tuning. The end-to-end pipeline — from Kaggle data acquisition through augmentation, training, and a fully functional Streamlit deployment — is modular, reproducible, and documented for extension to broader food recognition tasks.
+The \textbf{ChaatCheck} project successfully demonstrates the viability of lightweight convolutional neural networks for fine-grained cultural food recognition. By applying a two-stage transfer learning strategy to a MobileNetV2 backbone, we mitigated the risks of catastrophic forgetting and effectively adapted ImageNet features to the visually complex domain of Indian street food. Despite the constraints of a highly restricted dataset (only 50 original images per class), the application of strategic offline augmentation and careful hyperparameter tuning yielded a robust model capable of \textbf{83.33\% test accuracy} and a \textbf{0.81 macro F1-score}. 
 
-The allergen detection and calorie estimation features make this a practically useful tool beyond a pure academic exercise, with real-world relevance for dietary tracking and food-safety applications.
+Crucially, the project extends beyond a mere classification exercise by deploying the trained model via a responsive Streamlit web application. By coupling high-speed inference ($<$100ms on CPU) with a curated metadata dictionary, the system provides immediate, actionable nutritional and allergen intelligence. This end-to-end pipeline—from automated data acquisition and augmentation to model training and interactive deployment—establishes a scalable, reproducible foundation for culturally-aware dietary tracking and food safety applications.
 
 % ═════════════════════════════════════════════════════════════════════════════
 \section*{References}
 \addcontentsline{toc}{section}{References}
 % ═════════════════════════════════════════════════════════════════════════════
 
-\begin{enumerate}[leftmargin=1.5em, label={[\arabic*]}]
-  \item Banerjee, S. \textit{Indian Food Images Dataset}. Kaggle, 2022. \url{https://www.kaggle.com/datasets/iamsouravbanerjee/indian-food-images-dataset}
+\begin{thebibliography}{9}
 
-  \item Sandler, M., Howard, A., Zhu, M., Zhmoginov, A., \& Chen, L. C. (2018). \textit{MobileNetV2: Inverted Residuals and Linear Bottlenecks}. CVPR 2018.
+\bibitem{indianfood}
+Banerjee, S. \textit{Indian Food Images Dataset}. Kaggle, 2022. \url{https://www.kaggle.com/datasets/iamsouravbanerjee/indian-food-images-dataset}
 
-  \item Prabhavalkar, N. \textit{Indian Food 101}. Kaggle. \url{https://www.kaggle.com/datasets/nehaprabhavalkar/indian-food-classification}
+\bibitem{mobilenetv2}
+Sandler, M., Howard, A., Zhu, M., Zhmoginov, A., \& Chen, L. C. (2018). \textit{MobileNetV2: Inverted Residuals and Linear Bottlenecks}. In Proceedings of the IEEE Conference on Computer Vision and Pattern Recognition (CVPR), pp. 4510--4520.
 
-  \item National Institute of Nutrition. \textit{Indian Food Composition Tables (IFCT 2017)}. \url{https://www.nin.res.in}
+\bibitem{indianfood101}
+Prabhavalkar, N. \textit{Indian Food 101}. Kaggle. \url{https://www.kaggle.com/datasets/nehaprabhavalkar/indian-food-classification}
 
-  \item PyTorch. \textit{TorchVision Models — MobileNetV2}. \url{https://pytorch.org/vision/stable/models/mobilenet_v2.html}
+\bibitem{ifct}
+National Institute of Nutrition. \textit{Indian Food Composition Tables (IFCT 2017)}. \url{https://www.nin.res.in}
 
-  \item Streamlit. \textit{Streamlit Documentation}. \url{https://docs.streamlit.io}
-\end{enumerate}
+\bibitem{pytorch}
+PyTorch. \textit{TorchVision Models --- MobileNetV2}. \url{https://pytorch.org/vision/stable/models/mobilenet_v2.html}
+
+\bibitem{streamlit}
+Streamlit. \textit{Streamlit Documentation}. \url{https://docs.streamlit.io}
+
+\bibitem{imagenet}
+Deng, J., Dong, W., Socher, R., Li, L.-J., Li, K., \& Fei-Fei, L. (2009). \textit{ImageNet: A Large-Scale Hierarchical Image Database}. In Proceedings of IEEE CVPR, pp. 248--255.
+
+\end{thebibliography}
 
 \end{document}
