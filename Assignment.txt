@@ -1,0 +1,18 @@
+Statistical Methods in AI
+Assignment 3: Build a Real ML App
+13 Themes · 103 Variants · Pick One
+IIIT Hyderabad · Academic Year 2025–26
+Read this catalogue, discuss with your team, and submit your top 3 preferences
+via the assignment form.
+Time budget: 4–6 hours per person (total).
+Compute: Google Colab free tier (T4 GPU) or any laptop. No paid GPUs needed.
+Deliverables: (i) a working web app (Streamlit / Gradio / HF Space) (ii) a 4–6 page report
+(iii) GitHub repo.
+Tier 1: 1–3 students. Smaller dataset, simpler scope, lighter report.
+Tier 2: 5–7 students. Larger dataset, deeper evaluation, ICVGIP-style report
+
+
+OUR ASSIGNMENT - 
+
+
+I want to create this T2 — Indian Food Recognizer The problem. Point your phone at a thali; the app names every dish, gives a calorie estimate, and flags allergens (nuts, dairy, gluten). What you will build. Streamlit app: upload food photo → predicted dish → approximate calories → colour-coded allergen badges. Skills. Image classification, transfer learning, joining image labels to a metadata table. Common base datasets. • Master image dataset: kaggle.com/datasets/iamsouravbanerjee/indian-food-images-dataset (4,000 images, 80 classes). All image-classification variants subset this. • Metadata (region, course, diet, ingredients) for 255 dishes: kaggle.com/datasets/nehaprabhavalkar/indUse as the join table for nutrition / diet info. • Recipes corpus: kaggle.com/datasets/kanishk307/6000-indian-food-recipes-dataset (with cuisine, course, diet, ingredients). • Smaller alternative: kaggle.com/datasets/theeyeschico/indian-food-classification (top 20 dishes). For nutrition data, the Indian Food Composition Tables (IFCT 2017) PDF is available from the National Institute of Nutrition (https://www.nin.res.in); or generate once via Gemini and cache as JSON. T2.4 Street food Tier 1 12 classes (pani puri, vada pav, chaat, etc.) from the master set.

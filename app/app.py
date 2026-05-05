@@ -42,9 +42,9 @@ def show_allergens(allergens):
             cols[i].info("🥜 Nuts")
 
 # 🔹 UI
-st.set_page_config(page_title="Indian Food Recognizer", layout="centered")
+st.set_page_config(page_title="ChaatCheck", layout="centered")
 
-st.title("🍛 Indian Food Recognizer")
+st.title("🍛ChaatCheck- street food recognizer")
 st.caption("Upload a food image → get dish, calories & allergens")
 
 file = st.file_uploader("📤 Upload Food Image", type=["jpg", "png", "jpeg"])
